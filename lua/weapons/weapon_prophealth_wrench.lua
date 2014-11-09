@@ -51,12 +51,14 @@ function SWEP:PrimaryAttack()
 end
 
 function SWEP:SecondaryAttack()
+	--[[
 	local trace = self.Owner:GetEyeTrace()
 	if trace.HitPos:Distance(self.Owner:GetShootPos()) < 50 then
 		self:DestroyProp(trace.Entity)
 	else
 		self:Miss()
 	end
+	--]]
 end
 
 function SWEP:HealProp(ent)
