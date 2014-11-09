@@ -114,6 +114,9 @@ function ShowPropHealth()
 	local ent = LocalPlayer():GetEyeTrace().Entity
 	
 	--if ent:GetNWBool("hasburgerpropdamage",false) == true then
+	
+	if IsValid(ent) == false then return end
+	
 	if ent:GetClass() == "prop_physics" then
 		health = ent:GetNWFloat("propcurhealth")
 		maxhealth = ent:GetNWFloat("propmaxhealth")
