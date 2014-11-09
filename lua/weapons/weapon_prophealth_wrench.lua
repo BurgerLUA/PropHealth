@@ -63,8 +63,8 @@ end
 
 function SWEP:HealProp(ent)
 
-	if ent:GetNWBool("hasburgerpropdamage",false) == true then
-	
+	--if ent:GetNWBool("hasburgerpropdamage",false) == true then
+	if ent:GetNWFloat("propcurhealth",-1) ~= -1 then
 
 		local health = ent:GetNWFloat("propcurhealth")
 		local maxhealth = ent:GetNWFloat("propmaxhealth")

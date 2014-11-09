@@ -6,7 +6,7 @@ CreateConVar("sv_prophealth_healthscale", "1", FCVAR_REPLICATED + FCVAR_ARCHIVE 
 
 function PropSpawned(ply,model,ent)
 
-	ent:SetNWBool("hasburgerpropdamage",true)
+	--ent:SetNWBool("hasburgerpropdamage",true)
 	ent:SetHealth(999999)
 
 	ent:SetNWFloat("propcurhealth",1)
@@ -17,7 +17,10 @@ hook.Add("PlayerSpawnedProp","Prop Damage Initialize",PropSpawned)
 
 function PropTakeDamage( ent, dmg )
 
-	if ent:GetNWBool("hasburgerpropdamage",false) == true then
+	--if ent:GetNWBool("hasburgerpropdamage",false) == true then
+	if ent:GetClass() == "prop_physics" then
+	
+		if dmg:GetInflictor():GetClass() == "stunstick" then return end
 		
 		local health = ent:GetNWFloat("propcurhealth")
 		local maxhealth = ent:GetNWFloat("propmaxhealth")
@@ -45,8 +48,14 @@ function PropThink()
 	if CLIENT then return end
 
 	for k,ent in pairs(ents.FindByClass("prop_physics")) do
+	
+		if ent:GetNWFloat("propcurhealth",-1) == -1 then
+			ent:SetNWFloat("propcurhealth",1)
+			ent:SetNWFloat("propmaxhealth",1)
+		end
+	
 			
-		if ent:GetNWBool("hasburgerpropdamage",false) == true then
+		--if ent:GetNWBool("hasburgerpropdamage",false) == true then
 		
 			--if ent:GetNWFloat("oldmass",-1) ~= ent:GetPhysicsObject():GetMass() then
 				
@@ -68,7 +77,7 @@ function PropThink()
 					
 			--end
 
-		end
+		--end
 
 	end
 
@@ -104,8 +113,8 @@ function ShowPropHealth()
 	
 	local ent = LocalPlayer():GetEyeTrace().Entity
 	
-	if ent:GetNWBool("hasburgerpropdamage",false) == true then
-	
+	--if ent:GetNWBool("hasburgerpropdamage",false) == true then
+	if ent:GetClass() == "prop_physics" then
 		health = ent:GetNWFloat("propcurhealth")
 		maxhealth = ent:GetNWFloat("propmaxhealth")
 	
