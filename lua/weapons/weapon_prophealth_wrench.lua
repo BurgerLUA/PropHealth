@@ -85,7 +85,7 @@ function SWEP:HealProp(ent)
 			self:EmitSound("weapons/stunstick/stunstick_impact"..math.random(1,2)..".wav")
 			self:SetNextPrimaryFire(CurTime()+0.5)
 			self:SetNextSecondaryFire(CurTime()+0.5)
-			ent:SetNWFloat("propcurhealth", desired  )
+			ent:SetNWFloat("propcurhealth", math.floor(desired)  )
 			
 		else
 		
