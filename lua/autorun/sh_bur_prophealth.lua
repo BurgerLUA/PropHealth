@@ -9,8 +9,8 @@ function PropSpawned(ply,model,ent)
 	--ent:SetNWBool("hasburgerpropdamage",true)
 	ent:SetHealth(999999)
 
-	ent:SetNWFloat("propcurhealth",1)
-	ent:SetNWFloat("propmaxhealth",1)
+	ent:SetNWFloat("propcurhealth",0.1)
+	ent:SetNWFloat("propmaxhealth",0.1)
 	
 end
 hook.Add("PlayerSpawnedProp","Prop Damage Initialize",PropSpawned)
@@ -25,18 +25,16 @@ function PropTakeDamage( ent, dmg )
 		local health = ent:GetNWFloat("propcurhealth")
 		local maxhealth = ent:GetNWFloat("propmaxhealth")
 		
-		if health - dmg:GetDamage() < 0 then
-			ent:Fire( "break" )
-			return
+		if health < 0 then
+
+		else
+			ent:GetPhysicsObject():EnableCollisions(true)
+			
+			ent:SetNWFloat("propcurhealth",health - math.floor(dmg:GetDamage()))
+			
 		end
 		
-		ent:SetNWFloat("propcurhealth",health - math.floor(dmg:GetDamage()))
-		
-		local colormod = (health/maxhealth) * 255
-		
-		if colormod > 0 then
-			ent:SetColor( Color(colormod,colormod,colormod,255) )
-		end
+
 	
 	end
 	
@@ -49,41 +47,69 @@ function PropThink()
 
 	for k,ent in pairs(ents.FindByClass("prop_physics")) do
 	
-		if ent:GetNWFloat("propcurhealth",-1) == -1 then
+		if ent:GetNWFloat("propcurhealth",0.1) == 0.1 then
 			ent:SetNWFloat("propcurhealth",1)
 			ent:SetNWFloat("propmaxhealth",1)
+			ent:SetNWInt("proprepairhits",0)
 		end
-	
-			
-		--if ent:GetNWBool("hasburgerpropdamage",false) == true then
 		
-			--if ent:GetNWFloat("oldmass",-1) ~= ent:GetPhysicsObject():GetMass() then
-				
-				local oldhealth = ent:GetNWFloat("propcurhealth")
-				local oldmaxhealth = ent:GetNWFloat("propmaxhealth")
-				
-				local scale = oldhealth/oldmaxhealth
-				
-				local volume = ent:GetPhysicsObject():GetVolume()
-				local surfacearea = ent:GetPhysicsObject():GetSurfaceArea()
-				local mass = ent:GetPhysicsObject():GetMass()
+		local oldhealth = ent:GetNWFloat("propcurhealth")
+		local oldmaxhealth = ent:GetNWFloat("propmaxhealth")
+		
+		local scale = oldhealth/oldmaxhealth
+		
+		local volume = ent:GetPhysicsObject():GetVolume()
+		local surfacearea = ent:GetPhysicsObject():GetSurfaceArea()
+		local mass = ent:GetPhysicsObject():GetMass()
+
+		local newmaxhealth = ((mass/volume) * mass * 10 ^ 3.5 + 100) * GetConVar("sv_prophealth_healthscale"):GetInt()
+
+		ent:SetNWFloat("propmass",mass)
+		ent:SetNWFloat("propcurhealth",math.max(0,math.floor(scale * newmaxhealth)))
+		ent:SetNWFloat("propmaxhealth",math.floor(newmaxhealth))
+		
+		if scale * newmaxhealth <= 0 then
+			ent:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
+			--ent:SetNotSolid(true)
+			
+			ent:SetMaterial("models/wireframe")
+			ent:SetColor(Color(255,255,255,255))
+			
 	
-				local newmaxhealth = ((mass/volume) * mass * 10 ^ 4 + 100) * GetConVar("sv_prophealth_healthscale"):GetInt()
-
-				ent:SetNWFloat("propmass",mass)
-				ent:SetNWFloat("propcurhealth",math.floor(scale * newmaxhealth))
-				ent:SetNWFloat("propmaxhealth",math.floor(newmaxhealth))
-				
-					
-			--end
-
-		--end
+			--health = 1
+			
+		else
+		
+			ent:SetMaterial("")
+			--ent:SetNotSolid(false)
+			
+			local colormod = scale * 255
+		
+			if colormod > 0 then
+				ent:SetColor( Color(colormod,colormod,colormod,255) )
+			end
+			
+			if ent:GetPhysicsObject():IsPenetrating() == false then
+				ent:SetCollisionGroup(COLLISION_GROUP_NONE)
+			end
+		
+		end
 
 	end
 
 end
 
 hook.Add("Think", "Prop Think", PropThink)
+
+
+
+
+
+
+
+
+
+
 
 
 if SERVER then return end
@@ -113,6 +139,9 @@ function ShowPropHealth()
 	
 	local ent = LocalPlayer():GetEyeTrace().Entity
 	
+	
+	
+	
 	--if ent:GetNWBool("hasburgerpropdamage",false) == true then
 	
 	if IsValid(ent) == false then return end
@@ -122,8 +151,20 @@ function ShowPropHealth()
 		maxhealth = ent:GetNWFloat("propmaxhealth")
 	
 	
-		draw.DrawText(health .. "/" .. maxhealth,"HudFontProp",x,y,Color(255,255,255,255),TEXT_ALIGN_CENTER)
-		
+		local hitstotake = math.ceil((maxhealth - health) / (5 + maxhealth*0.005))
+		local time = hitstotake * 0.5
+	
+		if health == 0 then
+			draw.DrawText("Repair Time: "..time.. " sec","HudFontProp",x,y,Color(255,255,255,255),TEXT_ALIGN_CENTER)
+			draw.DrawText("Please contact your local repairman for assistance","HudFontProp",x,y + 24,Color(255,255,255,255),TEXT_ALIGN_CENTER)
+		else
+			if LocalPlayer():KeyDown(IN_USE) then
+				draw.DrawText("Repair Time: "..time.. " sec","HudFontProp",x,y,Color(255,255,255,255),TEXT_ALIGN_CENTER)
+			else
+				draw.DrawText(health .. "/" .. maxhealth,"HudFontProp",x,y,Color(255,255,255,255),TEXT_ALIGN_CENTER)
+			end
+		end
+
 	end
 
 end
