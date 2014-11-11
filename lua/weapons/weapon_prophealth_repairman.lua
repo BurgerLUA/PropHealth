@@ -1,5 +1,5 @@
 if CLIENT then
-	SWEP.PrintName			= "Apprentice Prop Repair Tool"
+	SWEP.PrintName			= "Master Prop Repair Tool"
 	SWEP.Slot				= 0
 	SWEP.SlotPos			= 0
 	SWEP.ViewModelFlip 		= false
