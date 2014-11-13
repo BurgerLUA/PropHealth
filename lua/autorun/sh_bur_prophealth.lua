@@ -18,6 +18,7 @@ hook.Add("PlayerSpawnedProp","Prop Damage Initialize",PropSpawned)
 function PropTakeDamage( ent, dmg )
 
 	--if ent:GetNWBool("hasburgerpropdamage",false) == true then
+	
 	if ent:GetClass() == "prop_physics" then
 	
 		if dmg:GetInflictor():GetClass() == "stunstick" then return end
@@ -25,15 +26,16 @@ function PropTakeDamage( ent, dmg )
 		local health = ent:GetNWFloat("propcurhealth")
 		local maxhealth = ent:GetNWFloat("propmaxhealth")
 		
-		if health < 0 then
-
+		local takeaway = health - math.floor(dmg:GetDamage())
+		
+		ent:SetNWFloat("propcurhealth",math.Max(0,takeaway))
+		
+		if takeaway <= 0 then
+			ent:SetNWInt("damagedcurtime",CurTime() + 120)
+			ent.RegenPeriod = true
 		else
 			ent:GetPhysicsObject():EnableCollisions(true)
-			
-			ent:SetNWFloat("propcurhealth",health - math.floor(dmg:GetDamage()))
-			
 		end
-		
 
 	
 	end
@@ -47,56 +49,68 @@ function PropThink()
 
 	for k,ent in pairs(ents.FindByClass("prop_physics")) do
 	
-		if ent:GetNWFloat("propcurhealth",0.1) == 0.1 then
+		if not ent.MaxHealth then
 			ent:SetNWFloat("propcurhealth",1)
 			ent:SetNWFloat("propmaxhealth",1)
 			ent:SetNWInt("proprepairhits",0)
-		end
-		
-		local oldhealth = ent:GetNWFloat("propcurhealth")
-		local oldmaxhealth = ent:GetNWFloat("propmaxhealth")
-		
-		local scale = oldhealth/oldmaxhealth
-		
-		local volume = ent:GetPhysicsObject():GetVolume()
-		local surfacearea = ent:GetPhysicsObject():GetSurfaceArea()
-		local mass = ent:GetPhysicsObject():GetMass()
-
-		local newmaxhealth = ((mass/volume) * mass * 10 ^ 3.5 + 100) * GetConVar("sv_prophealth_healthscale"):GetInt()
-
-		ent:SetNWFloat("propmass",mass)
-		ent:SetNWFloat("propcurhealth",math.max(0,math.floor(scale * newmaxhealth)))
-		ent:SetNWFloat("propmaxhealth",math.floor(newmaxhealth))
-		
-		if scale * newmaxhealth <= 0 then
-			ent:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
-			--ent:SetNotSolid(true)
 			
-			ent:SetMaterial("models/wireframe")
-			ent:SetColor(Color(255,255,255,255))
+			local volume = ent:GetPhysicsObject():GetVolume()
+			local surfacearea = ent:GetPhysicsObject():GetSurfaceArea()
+			local mass = ent:GetPhysicsObject():GetMass()
 			
-	
-			--health = 1
+			ent:SetNWFloat("propmass",mass)
+			
+			ent.MaxHealth = math.floor(((mass/volume) * mass * 10 ^ 3.5 + 100) * GetConVar("sv_prophealth_healthscale"):GetInt())
+			
+			ent:SetNWFloat("propcurhealth",ent.MaxHealth)
+			ent:SetNWFloat("propmaxhealth",ent.MaxHealth)
 			
 		else
 		
-			ent:SetMaterial("")
-			--ent:SetNotSolid(false)
-			
-			local colormod = scale * 255
+			local scale = ent:GetNWFloat("propcurhealth",ent.MaxHealth) / ent:GetNWFloat("propmaxhealth",ent.MaxHealth)
+
 		
-			if colormod > 0 then
-				ent:SetColor( Color(colormod,colormod,colormod,255) )
+			if ent:GetNWFloat("propcurhealth") == 0 then
+				ent:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
+				--ent:SetNotSolid(true)
+				
+				ent:SetMaterial("models/wireframe")
+				ent:SetColor(Color(255,255,255,255))
+
+			else
+			
+				ent:SetMaterial("")
+				
+				ent.RegenPeriod = false
+				
+				--ent:SetNotSolid(false)
+				
+				local colormod = scale * 255
+			
+				if colormod > 0 then
+					ent:SetColor( Color(colormod,colormod,colormod,255) )
+				end
+				
+				if ent:GetPhysicsObject():IsPenetrating() == false then
+					ent:SetCollisionGroup(COLLISION_GROUP_NONE)
+				end
+			
 			end
 			
-			if ent:GetPhysicsObject():IsPenetrating() == false then
-				ent:SetCollisionGroup(COLLISION_GROUP_NONE)
+
+			if ent:GetNWInt("damagedcurtime",CurTime() + 1) <= CurTime() then
+			
+				if ent.RegenPeriod == true then
+					ent:SetNWFloat("propcurhealth", math.floor(ent:GetNWFloat("propmaxhealth",1) * 0.01))
+					ent.RegenPeriod = false
+				end
+				
+				
 			end
-		
+
+			
 		end
-
 	end
-
 end
 
 hook.Add("Think", "Prop Think", PropThink)
@@ -153,12 +167,15 @@ function ShowPropHealth()
 	
 		local hitstotake = math.ceil((maxhealth - health) / (5 + maxhealth*0.005))
 		local time = hitstotake * 0.5
+		
+		
+		local autofelatio = math.floor(ent:GetNWInt("damagedcurtime",-1) - CurTime())
 	
 		if health == 0 then
 			draw.DrawText("Repair Time: "..time.. " sec","HudFontProp",x,y,Color(255,255,255,255),TEXT_ALIGN_CENTER)
-			draw.DrawText("Please contact your local repairman for assistance","HudFontProp",x,y + 24,Color(255,255,255,255),TEXT_ALIGN_CENTER)
+			draw.DrawText("Automatic Self-Repair Time: " .. autofelatio .. " sec","HudFontProp",x,y + 24,Color(255,255,255,255),TEXT_ALIGN_CENTER)
 		else
-			if LocalPlayer():KeyDown(IN_USE) then
+			if LocalPlayer():KeyDown(IN_RELOAD) then
 				draw.DrawText("Repair Time: "..time.. " sec","HudFontProp",x,y,Color(255,255,255,255),TEXT_ALIGN_CENTER)
 			else
 				draw.DrawText(health .. "/" .. maxhealth,"HudFontProp",x,y,Color(255,255,255,255),TEXT_ALIGN_CENTER)
