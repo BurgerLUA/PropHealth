@@ -49,11 +49,15 @@ function PropThink()
 
 	for k,ent in pairs(ents.FindByClass("prop_physics")) do
 	
+		if not IsValid(ent:GetPhysicsObject()) then return end
+	
+	
 		if not ent.MaxHealth then
 			ent:SetNWFloat("propcurhealth",1)
 			ent:SetNWFloat("propmaxhealth",1)
 			ent:SetNWInt("proprepairhits",0)
 			
+
 			local volume = ent:GetPhysicsObject():GetVolume()
 			local surfacearea = ent:GetPhysicsObject():GetSurfaceArea()
 			local mass = ent:GetPhysicsObject():GetMass()
@@ -88,7 +92,7 @@ function PropThink()
 				local colormod = scale * 255
 			
 				if colormod > 0 then
-					ent:SetColor( Color(colormod,colormod,colormod,255) )
+					--ent:SetColor( Color(colormod,colormod,colormod,255) )
 				end
 				
 				if ent:GetPhysicsObject():IsPenetrating() == false then
