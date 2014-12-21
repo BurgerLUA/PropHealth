@@ -7,7 +7,7 @@ CreateConVar("sv_prophealth_healthscale", "1", FCVAR_REPLICATED + FCVAR_ARCHIVE 
 function PropSpawned(ply,model,ent)
 
 	--ent:SetNWBool("hasburgerpropdamage",true)
-	ent:SetHealth(999999)
+	ent:SetHealth(9999999)
 
 	ent:SetNWFloat("propcurhealth",0.1)
 	ent:SetNWFloat("propmaxhealth",0.1)
@@ -82,8 +82,9 @@ function PropThink()
 				ent:SetColor(Color(255,255,255,255))
 
 			else
-			
-				ent:SetMaterial("")
+				if ent:GetMaterial() == "models/wireframe" then
+					ent:SetMaterial("")
+				end
 				
 				ent.RegenPeriod = false
 				
@@ -157,11 +158,6 @@ function ShowPropHealth()
 	
 	local ent = LocalPlayer():GetEyeTrace().Entity
 	
-	
-	
-	
-	--if ent:GetNWBool("hasburgerpropdamage",false) == true then
-	
 	if IsValid(ent) == false then return end
 	
 	if ent:GetClass() == "prop_physics" then
@@ -208,8 +204,6 @@ surface.CreateFont( "PropHealthFont", {
 	additive = false, 
 	outline = false, 
 } )
-
-
 
 function PropDamageDerma()
 
