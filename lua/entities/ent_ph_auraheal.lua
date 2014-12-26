@@ -27,10 +27,10 @@ if SERVER then
 	sound.Add( {
 		name = "ph_bitch_loop", 
 		channel = CHAN_STATIC, 
-		volume = 1.0, 
+		volume = 0.75, 
 		level = SNDLVL_IDLE, 
-		pitch = {90, 110}, 
-		sound = "ambient/machines/combine_shield_loop3.wav"
+		pitch = {140, 150}, 
+		sound = "ambient/alarms/alarm_citizen_loop1.wav"
 	} )
 	
 end
@@ -81,6 +81,8 @@ function ENT:Initialize()
 	
 	if CLIENT then
 	
+		self:SetRenderBounds( Vector(-1,-1,-1)*200, Vector(1,1,1)*200)
+	
 		self.detail3 = ClientsideModel( "models/maxofs2d/hover_plate.mdl" )
 		self.detail3:SetPos(self.TheCenter)
 		self.detail3:SetAngles(self:GetAngles() + Angle(0,0,-90))
@@ -115,6 +117,7 @@ end
 function ENT:OnRemove()
 	if SERVER then
 		self:StopSound("ph_healer_loop")
+		self:StopSound("ph_bitch_loop")
 	end
 
 	if CLIENT then
@@ -165,6 +168,7 @@ function ENT:OnTakeDamage(dmginfo)
 		self:Detonate(dmginfo:GetAttacker())
 	elseif not self:IsOnFire() and RandomMin <= RandomCount and self.On == true then
 		self:Ignite(300,10)
+		self:EmitSound("ph_bitch_loop")
 	end
 	
 	--[[
@@ -207,11 +211,19 @@ function ENT:Detonate(attacker)
 end
 
 
+
 function ENT:Think()
+
+	if CLIENT then
+		--self:RunSphere()
+	end
+
 
 	if SERVER then
 	
 		self.TheCenter = self:GetPos() + self:GetRight()*12 + self:GetUp()*6 + self:GetForward()*-6
+	
+		--print(tostring(self) .. " START THINK: " .. tostring(self.TheCenter))
 	
 		if self.On then
 		
@@ -224,7 +236,7 @@ function ENT:Think()
 			end
 
 			phys:ApplyForceCenter(Vector(math.Rand(-1,1),math.Rand(-1,1),math.Rand(-1,1))*10)
-			phys:ApplyForceOffset( Vector(math.Rand(-1,1),math.Rand(-1,1),math.Rand(-1,1))*0.25, Vector(0,0,10) )
+			--phys:ApplyForceOffset( Vector(math.Rand(-1,1),math.Rand(-1,1),math.Rand(-1,1))*0.25, Vector(0,0,10) )
 			
 			self:SetNWInt("Skin",2)
 			
@@ -238,6 +250,9 @@ function ENT:Think()
 			if self.NextHeal < CurTime() then
 			
 				if self:IsOnFire() == false then
+				
+					--print(tostring(self) .. " FIND : " .. tostring(self.TheCenter))
+					
 					for k,v in pairs(ents.FindInSphere(self.TheCenter,5000)) do
 						if v ~= self then
 						
@@ -245,7 +260,7 @@ function ENT:Think()
 								if v.TheCenter:Distance(self.TheCenter) <= (self.Radius + v.Radius) then
 									self.On = false
 								end
-							return end
+							end
 						
 							if v:GetPos():Distance(self.TheCenter) <= self.Radius then
 								if v:GetClass() == "prop_physics" then
@@ -278,7 +293,7 @@ function ENT:Think()
 				
 			end
 			
-			--[[
+			
 			if self:IsOnFire() then
 				for k,v in pairs(ents.FindInSphere(self.TheCenter,self.Radius*2)) do
 					if v:IsPlayer() then
@@ -286,20 +301,77 @@ function ENT:Think()
 					end
 				end
 			end
-			--]]
+			
+			
+			if self:IsOnFire() == false then
+				self:StopSound("ph_bitch_loop")
+			end
 			
 			
 		else
 			self.soundp = false
 			self:StopSound("ph_healer_loop")
+			self:StopSound("ph_bitch_loop")
 			self:SetNWInt("Skin",0)
 		
 		end
 	end
-	
-
 
 end
+
+function ENT:Draw()
+	if CLIENT then
+		--self:DrawModel()
+
+		self:RunSphere()
+		
+		
+	end
+end
+
+--[[
+function ENT:RenderOverride()
+	
+	--self:RunSphere()
+
+end
+--]]
+
+local mat = Material("models/wireframe")
+
+
+function ENT:RunSphere()
+
+	self.detail:SetSkin(self:GetNWInt("Skin",0))
+			
+	if self:GetNWInt("Skin",0) == 2 or self.EffectRadius > 1 then
+			
+		local Amount
+				
+		if self:GetNWInt("Skin",0) == 2 then
+			Amount = 1
+		else
+			Amount = -1
+		end
+		
+				
+		self.EffectRadius = math.Clamp(self.EffectRadius + Amount,0, self:GetNWFloat("CoreHealth",self.Radius*2)/2 )
+				
+		cam.Start3D(EyePos(),EyeAngles() + Angle(0,0,0) )
+			render.SetMaterial( mat )
+			render.DrawSphere( self.detail3:GetPos(), self.EffectRadius, 32, 32, Color(255,255,255,55) )
+			render.DrawSphere( self.detail3:GetPos(), -self.EffectRadius, 32, 32, Color(255,255,255,55) )
+		cam.End3D()
+		
+	else
+				
+		self.EffectRadius = 0
+			
+	end
+	
+end
+
+
 
 function ENT:HealProp(ent)
 
@@ -328,36 +400,3 @@ function ENT:HealProp(ent)
 end
 
 
-local mat = Material("models/effects/vortshield")
-
-function ENT:Draw()
-	if CLIENT then
-		--self:DrawModel()
-
-		self.detail:SetSkin(self:GetNWInt("Skin",0))
-		
-		if self:GetNWInt("Skin",0) == 2 or self.EffectRadius > 1 then
-		
-			local Amount
-		
-			if self:GetNWInt("Skin",0) == 2 then
-				Amount = 1
-			else
-				Amount = -1
-			end
-		
-			self.EffectRadius = math.Clamp(self.EffectRadius + Amount,0, self:GetNWFloat("CoreHealth",self.Radius*2)/2 )
-		
-			cam.Start3D(EyePos(),EyeAngles())
-				render.SetMaterial( mat )
-				render.DrawSphere( self.detail3:GetPos(), self.EffectRadius, 32, 32, Color(255,255,255,50) )
-			cam.End3D()
-		else
-		
-			self.EffectRadius = 0
-	
-		end
-		
-		
-	end
-end
