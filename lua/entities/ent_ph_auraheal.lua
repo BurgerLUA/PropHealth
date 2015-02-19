@@ -342,7 +342,9 @@ local mat = Material("models/wireframe")
 
 function ENT:RunSphere()
 
-	self.detail:SetSkin(self:GetNWInt("Skin",0))
+	if self.detail then
+		self.detail:SetSkin(self:GetNWInt("Skin",0))
+	end
 			
 	if self:GetNWInt("Skin",0) == 2 or self.EffectRadius > 1 then
 			
