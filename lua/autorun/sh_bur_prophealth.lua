@@ -4,9 +4,9 @@ CreateConVar("sv_prophealth_healthscale", "1", FCVAR_REPLICATED + FCVAR_ARCHIVE 
 
 function InitializePropHealth(ent)
 
-	local volume = ent:GetPhysicsObject():GetVolume()
-	local surfacearea = ent:GetPhysicsObject():GetSurfaceArea()
-	local mass = ent:GetPhysicsObject():GetMass()
+	local volume = ent:GetPhysicsObject():GetVolume() or 100
+	local surfacearea = ent:GetPhysicsObject():GetSurfaceArea() or 100
+	local mass = ent:GetPhysicsObject():GetMass() or 100
 	
 	ent.MaxHealth = math.ceil(volume * 0.1/12.77 * GetConVar("sv_prophealth_healthscale"):GetInt())
 			
